@@ -24,6 +24,7 @@ void draw()
   int n = orbs.size();
   for (int i = 0; i<n; i++){
     getorb(i).display();
+    getorb(i).move();
   println(n);}
  
 }

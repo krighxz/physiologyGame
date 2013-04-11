@@ -23,6 +23,8 @@ class orb {
 
 //move orb
 void move(){
+  pos.x += (0-pos.x)/1000;
+  pos.y += (0-pos.y)/1000;
 }
 
 //check for collisions
