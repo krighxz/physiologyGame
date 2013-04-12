@@ -7,7 +7,7 @@ class orb {
   ArrayList others = new ArrayList();
   PVector magnetism = new PVector(0,0);
   int fieldSize = 50; // threshold distance, under which orbs will attract each other
-  float s = 0.8; //orb speed
+  float s = 3; //orb speed
   PVector dest = new PVector(0,0); // destination coordinates
   boolean free = true;
   int PlanetRad = width/3;
@@ -23,7 +23,7 @@ class orb {
   void display() {
     smooth();
     noStroke();
-    fill(255, 255, 255, 100);
+    fill(c);
     ellipse(pos.x, pos.y, rad, rad);
   }
 
@@ -33,7 +33,7 @@ void move(float spin){
   if (!free)
   pos.rotate(spin);
   if (!collide()){
-  pos.add(PVector.div(diff,(abs(diff.x)+abs(diff.y))*0.8));// + magnetism.x;
+  pos.add(PVector.div(diff,(abs(diff.x)+abs(diff.y))*1/s));// + magnetism.x;
   pos.add(magnetism);// pos.y += s*(ydiff/sum) + magnetism.y;
   }
 }
@@ -57,7 +57,7 @@ void move(float spin){
       }
       // if no collision and within field, calculate magnetism
       PVector diff = PVector.sub(getothers(closest).pos,pos);
-      if (dMin <= fieldSize && (dMin > (rad/2+getothers(closest).rad/2))){
+      if (dMin <= fieldSize && (dMin > (rad/2+getothers(closest).rad/2)) && !getothers(closest).free){
         magnetism.add(PVector.mult(PVector.div(diff,(abs(diff.x)+abs(diff.y))),(fieldSize-dMin)/20));
      }
       // if collision then return true
