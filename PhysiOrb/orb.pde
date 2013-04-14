@@ -53,7 +53,7 @@ class orb {
     magnetism.set(0.0, 0.0, 0.0);
     locals = 0;
     // collision with main circle
-    if (PVector.dist(pos, dest) < (rad/2+PlanetRad/2)) {
+    if (pos.mag() < (rad/2+PlanetRad/2)) {
       free = false;
       onPlanet = true;
       return true;
@@ -69,17 +69,15 @@ class orb {
         }
 
         // counts locals (touching orbs) and checks if anything in between orb and planet
-        if (d <= 0) {
+        if (d <= 3) {
           locals += 1;
-          float dThis = PVector.dist(pos, dest);
-          float dThat = PVector.dist(getothers(i).pos, dest); 
+          float dThis = pos.mag() -rad/2;
+          float dThat = getothers(i).pos.mag() - getothers(i).rad/2 ; 
           if (dThis > dThat)
             blocked = true;
         }
       }
     }
-
-
 
     // if no collision and within field, calculate magnetism
     PVector diff = PVector.sub(getothers(closest).pos, pos);
@@ -88,13 +86,14 @@ class orb {
     }
 
     if (blocked == false) {
+      free = true;
       tryCount = 0; 
       return false;
     }
 
     // if collision then return true
     PVector fpos = PVector.add(PVector.div(diff, (abs(diff.x)+abs(diff.y))*0.2), pos);
-    if (abs(PVector.dist(pos, getothers(closest).pos)) <= (rad/2+getothers(closest).rad/2)) {
+    if (PVector.dist(pos, getothers(closest).pos) <= (rad/2+getothers(closest).rad/2)) {
 
       if (n>1 && (tryCount<10 || locals != lastLocals)) {
         float angThis = atan2(pos.x, pos.y);
