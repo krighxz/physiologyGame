@@ -46,7 +46,7 @@ void draw()
   killColour = colours[cSel];
   rot += 0.02;
   kVect.rotate(0.02);
-  background(100);
+  //background(100);
   int n = orbs.size();
   
   
