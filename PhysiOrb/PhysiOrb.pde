@@ -15,12 +15,27 @@ OscP5 oscP5;
 NetAddress myRemoteLocation;
 Serial myPort; 
 
-int[] heart = {
+float[] heartY = {
   8, 9, 9, 12, 14, 17, 15, 12, 9, 12, 9, 31, 48, 0, 10, 12, 12, 12, 13, 
   13, 13, 14, 14, 15, 16, 17, 19, 20, 22, 23, 24, 22, 18, 14, 10, 9, 8, 8, 8
 };
-int respC = 0;
-int respE = 0;
+
+float[] heartX = new float[heartY.length];
+
+int[] lungX = {
+  41, 29, 16, 13, 7, 5, 2, 2, 1, 2, 4, 11, 23, 33, 44, 54, 60, 62, 62, 66, 70, 70, 
+  72, 78, 88, 98, 108, 120, 128, 129, 131, 130, 130, 127, 125, 119, 115, 98, 85
+};
+
+int[] lungY = {
+  41, 44, 39, 35, 30, 26, 21, 17, 13, 8, 4, 0, 2, 7, 11, 16, 20, 24, 
+  29, 32, 29, 24, 20, 16, 11, 7, 3, 0, 3, 8, 12, 17, 21, 26, 30, 34, 39, 44, 42
+};
+
+
+
+float respC = 0;
+float respE = 0;
 int heartC = 0;
 int heartE = 0;
 
@@ -49,8 +64,12 @@ float[] mags2 = new float[outerRes2];
 boolean electric = false;
 boolean hitBoundary = false;
 boolean release = false;
-boolean intro = false;
+boolean intro = true;
 boolean disableSend = true;
+boolean Iheart = true;
+boolean Iresp = false;
+boolean Ipre = false;
+boolean Iend = false;
 
 int tog = 0;
 int r = 20;
@@ -63,6 +82,12 @@ color killColour; //colour of kill block
 
 int cSel = 0; //colour select 
 float autoRelease = 1000;
+float grow;
+float grow2;
+float shL;
+float shR;
+float rad; 
+float rad2; 
 
 float speed = 0;
 int [] sensors = new int[3];
@@ -71,6 +96,10 @@ float time =0;
 boolean bike = false;
 
 PVector kVect = new PVector(0, -200); // kill block vector
+PVector eR;
+PVector eL;
+PVector destL;
+PVector destR;
 
 int bT = 1000;
 float b = 0.5;
@@ -100,6 +129,23 @@ void setup()
 
   colours[0] = color(255);
   colours[1] = color(100);
+
+
+  rad = 250;
+  rad2 = 250;
+
+  grow = width/8;
+  grow2 = height/4.6;
+  eR = new PVector((width/3), 0);
+  eL = new PVector(-(width/3), 0);
+  destL = new PVector(-width/2, height/2);
+  destR = new PVector(width/2, height/2);
+
+
+
+  for (int i = 0; i< heartY.length-1; i++) {
+    heartX[i] = i*4.0;
+  }
 
   // set points for outer circle
   for (int i = 0; i<outerRes; i++) {
@@ -132,12 +178,35 @@ void setup()
 
 void draw()
 {
+  float ck = millis()/1000;
+  if (ck <60)
+    intro = true;
+  if (ck < 10)
+    Iheart = true; 
+  if (ck >= 10) {
+    Iheart = false; 
+    Iresp = true;
+  }
+  if (ck >= 20) { 
+    Iresp = false;
+    Ipre = true;
+  }
+  if (ck >= 25) {
+    Ipre = false; 
+    Iend = true;
+  }
+  if (ck >= 32) { 
+    Iend = false;
+    intro = false;
+  }
+
   noFill();
   imageMode(CORNER);
-  image(back, 0, 0);
+  image(metal, 0, 0);
 
-  fill(10, 10, 10, 140);
+  fill(10, 10, 10, 200);
   rectMode(CORNER);
+  noStroke();
   rect(0, 0, 1280, 720); // overlay rect
   lights();
 
@@ -206,10 +275,10 @@ void draw()
         n -=1;
       }
     }
-      
-    drawOrbs(shad,1);
-    drawOrbs(src,0);
-    
+
+    drawOrbs(shad, 1);
+    drawOrbs(src, 0);
+
     if (hitBoundary)
       electric = true;
     //  filter(edges);
@@ -235,10 +304,10 @@ void draw()
     image(pass2, 0, 0);
 
     noStroke();
-    fill(255);
-    ellipse(-width/2, height/2, 100, 100);
-    fill(100);
-    ellipse(width/2, height/2, 100, 100);
+    fill(colours[0]);
+    ellipse(-width/2, height/2, 250, 250);
+    fill(colours[1]);
+    ellipse(width/2, height/2, 250, 250);
     popMatrix(); //pop Main
 
     if (electric)
@@ -246,7 +315,7 @@ void draw()
     else
       sendOSC("/electric", 0, 0, 0);
 
-    sendOSC("/sensors", (int) round(speed*10000.0), respC, respE);
+    sendOSC("/sensors", (int) round(speed*10000.0), (int)respC, (int)respE);
     //println((int) round(speed*10000.0));
   }
 }
@@ -280,6 +349,8 @@ void keyPressed() {
     intro = !intro;
   if (key == 'd')
     disableSend = !disableSend;
+  if (key == 'l')
+    Iresp = true;
   // change kill block colour with L or R arrow
   if (key == CODED) {
     if (keyCode == LEFT) {
@@ -306,6 +377,8 @@ void spawn(int radius, int player) {
   PVector P;
   color col;
   radius = radius/20 + 20;
+  if (intro && Iheart)
+    radius = 50;
 
   if (player == 0) {
     if (intro)
@@ -323,7 +396,8 @@ void spawn(int radius, int player) {
   }
   sendOSC("/add", player, ID, radius);
   PVector V = new PVector(-1, -1);
-  orbs.add(new orb(P, radius, V, col, orbs, ID));
+  if (!Ipre && !Iend)
+    orbs.add(new orb(P, radius, V, col, orbs, ID));
 }
 
 void drawOuter(PVector[] Points, float[] Mags) {
@@ -337,7 +411,7 @@ void drawOuter(PVector[] Points, float[] Mags) {
       shade = map(sin((10*PI)/(Points.length)*(i+millis()/30)), -1, 1, 100, 255);
     else
       shade = map(sin((10*PI)/(Points.length)*(i+millis()/20)), -1, 1, 50, 255);
-    stroke(shade, 200);
+    stroke(shade);
     strokeWeight(4);
     float rand = (random(-6, 6));
 
@@ -396,10 +470,10 @@ void oscEvent(OscMessage theOscMessage) {
 
       //println(heartC);
       if (heartC == 1) {
-        spawn(respC, 0);
+        spawn((int)respC, 0);
       }
       if (heartE == 1) {
-        spawn(respE, 1);
+        spawn((int)respE, 1);
       }
       return;
     }
@@ -447,101 +521,173 @@ void drawOrbs(PGraphics b, int sh) {
   b.background(0, 0, 0, 0);
   b.smooth(8);
   b.translate(width/2, height/2);
-  if (sh ==1){
-  b.fill(0);
-  b.ellipse(0, 0, width/4, width/4);}
-  else{
-  b.imageMode(CENTER);
-  b.pushMatrix();
-  b.rotate(pRot);
-  b.image(planet, 0, 0, height/2.3, height/2.3);
-  b.popMatrix();}
   b.noStroke();
-    for (int i = 0; i<o; i++) {
+  for (int i = 0; i<o; i++) {
     if (!getorb(i).killed) {
       if (sh == 0)
         b.fill(getorb(i).c);
       else
         b.fill(0);
-      b.ellipse(getorb(i).pos.x, getorb(i).pos.y, getorb(i).rad, getorb(i).rad);}
+      b.ellipse(getorb(i).pos.x, getorb(i).pos.y, getorb(i).rad, getorb(i).rad);
     }
-  
+  }
+
   for (int i = 0; i<o; i++) {
-      if (getorb(i).killed) {
+    if (getorb(i).killed) {
       int red = (int) constrain(red(getorb(i).c)+4, 0, 255);
       int green = (int) constrain(green(getorb(i).c)-4, 0, 255);
       int blue = (int) constrain(blue(getorb(i).c)-4, 0, 255);
       getorb(i).c = color(red, green, blue);
       b.fill(getorb(i).c);
-      b.ellipse(getorb(i).pos.x, getorb(i).pos.y, getorb(i).rad, getorb(i).rad);}
+      b.ellipse(getorb(i).pos.x, getorb(i).pos.y, getorb(i).rad, getorb(i).rad);
+    }
   }
-  
-
-    b.endDraw();
+  if (sh ==1) {
+    b.fill(0);
+    if (intro && !Iend)
+      b.ellipse(0, 0, width/8, width/8);
+    else {
+      if (grow < width/4)
+        grow += 2;
+      b.ellipse(0, 0, grow, grow);
+    }
+  }
+  else {
+    b.imageMode(CENTER);
+    b.pushMatrix();
+    if (intro && !Iend)
+      b.image(planet, 0, 0, height/4.6, height/4.6);
+    else {
+      if (grow2 < height/2.3)
+        grow2 += 2; 
+      b.rotate(pRot);
+      b.image(planet, 0, 0, grow2, grow2);
+    }
+    b.popMatrix();
+  }
+  b.endDraw();
 }
 
 
-    void runStart() {
-      blurS.set("blurSize", 20);
-      ambientLight(255, 255, 255);
-
-      int n = orbs.size();
-
-      pushMatrix(); //push main
-      translate(width/2, height/2);
-      // for all orbs
-      for (int i = 0; i<n; i++) {
-        getorb(i).move(speed); // calculate orb posit check collisions
-        //getorb(i).display(src, shad); // display orb
-
-        if (PVector.dist(getorb(i).pos, new PVector(0, 0)) < 5) {
-          orbs.remove(i);
-          n -=1;
-        }
-      }
-      blurBuff(0, shad, pass1, pass2, blurS, width*1.2, height*1.2);
-      blurBuff(1, src, pass1, pass2, blur, width, height);
-      
-
-      imageMode(CENTER);
-      image(pass2S, 0, 0, width*1.2, height*1.2); 
-      image(pass2, 0, 0);
-
-      popMatrix();
+void runStart() {
+  blurS.set("blurSize", 20);
+  ambientLight(255, 255, 255);
+  drawOrbs(shad, 1);
+  drawOrbs(src, 0);
+  int n = orbs.size();
+  blurBuff(0, shad, pass1, pass2, blurS, width*1.2, height*1.2);
+  blurBuff(1, src, pass1, pass2, blur, width, height);
 
 
-      pushMatrix();
-      translate((width/4)*3-80, height/2);
-      fill(colours[1]);
-      noStroke();
-      ellipse(70, -50, 250, 250);
-      beginShape();
-      noFill();
-      float shade;
-      for (float k = 0; k< heart.length; k++) {
-        shade = map(sin((2*PI)/(heart.length)*(k-millis()/(1000/heart.length))), -1, 1, 0, 255);
-        stroke(shade);
-        strokeWeight(2);
-        curveVertex((k*4), (heart[(int)k]*-3));
-      }
-      endShape();
-      popMatrix();
+  pushMatrix(); //push main
+  translate(width/2, height/2);
+  // for all orbs
+  for (int i = 0; i<n; i++) {
+    getorb(i).move(speed); // calculate orb posit check collisions
+    //getorb(i).display(src, shad); // display orb
 
-      pushMatrix();
-      translate((width/4)-80, height/2);
-      fill(colours[0]);
-      noStroke();
-      ellipse(70, -50, 250, 250);
-      beginShape();
-      noFill();
-      for (float k = 0; k< heart.length; k++) {
-        shade = map(cos((2*PI)/(heart.length)*(k-millis()/(1000/heart.length))), -1, 1, 100, 255);
-        stroke(shade);
-        strokeWeight(2);
-        curveVertex((k*4), (heart[(int)k]*-3));
-      }
-      endShape();
-      popMatrix();
+    if (PVector.dist(getorb(i).pos, new PVector(0, 0)) < 5) {
+      orbs.remove(i);
+      n -=1;
     }
+  }
+  imageMode(CENTER);
+  image(pass2, 0, 0);
+  popMatrix();
 
+  if (Iend) {
+    PVector diffL = PVector.sub(destL, eL);
+    if (diffL.mag() <10)
+      eL = destL;
+    else
+      eL.add(PVector.div(diffL, (abs(diffL.x)+abs(diffL.y))*1/7));
+    PVector diffR = PVector.sub(destR, eR);
+    if (diffR.mag() <10)
+      eR = destR;
+    else
+      eR.add(PVector.div(diffR, (abs(diffR.x)+abs(diffR.y))*1/7));
+  }
+
+  pushMatrix();
+  translate(width/2, height/2);
+  fill(colours[1]);
+  noStroke();
+  if (Iresp&&!Ipre) {
+    if (rad > 250+(respE/20.0 - 20.0))
+      rad -= 1;
+    if (rad < 250+(respE/20.0 - 20.0))
+      rad += 1;
+  }
+  if (Ipre) {
+    if (rad > 250)
+      rad -= 2;
+  }
+  ellipse(eR.x, eR.y, rad, rad);
+  beginShape();
+  noFill();
+  strokeWeight(4);
+  float shade;
+  if (Ipre)
+    shR -=1;
+  for (float k = 0; k< heartY.length; k++) {
+    shade = map(sin((2*PI)/(heartY.length)*(k-millis()/(1000/heartY.length))), -1, 1, 150, 255);
+    if (Iresp && !Ipre && !Iend) {
+      shade = map(sin((2*PI)*millis()/4000), -1, 1, 150, 255);
+      for (int j = 0; j< heartY.length; j++) {
+        if (heartX[j] < lungX[j])
+          heartX[j] +=0.001*abs(heartX[j] - lungX[j]);
+        else if (heartX[j] > lungX[j])
+          heartX[j] -=0.001*abs(heartX[j] - lungX[j]);
+        if (heartY[j] < lungY[j])
+          heartY[j] +=0.001*abs(heartY[j] - lungY[j]);
+        else if (heartY[j] > lungY[j])
+          heartY[j] -=0.001*abs(heartY[j] - lungY[j]);
+      }
+      shR = shade;
+    }  
+    stroke(shade);
+    if (Ipre) {
+      stroke(constrain(shR, 150, 255));
+    }
+    if (!Iend)
+      curveVertex(heartX[(int)k]-65+width/3, (heartY[(int)k]*-3)+50);
+  }
+  endShape();
+  popMatrix();
+
+  pushMatrix();
+  translate(width/2, height/2);
+  fill(colours[0]);
+  noStroke();
+  if (Iresp&&!Ipre) {
+    if (rad2 > 250+(respC/20.0 - 20.0))
+      rad2 -= 1;
+    if (rad2 < 250+(respC/20.0 - 20.0))
+      rad2 += 1;
+  }
+  if (Ipre) {
+    if (rad2 > 250)
+      rad2 -= 2;
+  }
+  ellipse(eL.x, eL.y, rad2, rad2);
+  beginShape();
+  noFill();
+  if (Ipre)
+    shL +=1;
+  for (float k = 0; k< heartY.length; k++) {
+    shade = map(cos((2*PI)/(heartY.length)*(k-millis()/(1000/heartY.length))), -1, 1, 0, 255);
+    if (Iresp && !Ipre && !Iend) {
+      shade = map(sin((2*PI)*millis()/4000), -1, 1, 0, 255);
+      shL = shade;
+    }
+    stroke(shade);
+    if (Ipre) {
+      stroke(constrain(shL, 0, 255));
+    }
+    if (!Iend)
+      curveVertex(heartX[(int)k]-65-width/3, (heartY[(int)k]*-3)+50);
+  }
+  endShape();
+  popMatrix();
+}
 

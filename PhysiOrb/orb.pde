@@ -39,10 +39,9 @@ class orb {
   //move orb
   void move(float spin) {
     PVector diff = PVector.sub(dest, pos);
-    if(intro){
-    pos.add(PVector.div(diff, (abs(diff.x)+abs(diff.y))*1/s));
-  
-}
+    if (intro) {
+      pos.add(PVector.div(diff, (abs(diff.x)+abs(diff.y))*1/s));
+    }
     else if (!killed) {
       if (!free)
         pos.rotate(spin);
@@ -79,64 +78,64 @@ class orb {
     }
     blocked = false;
     // find closest orb
-    if(!onPlanet){
-    for (int i = 0; i<n; i++) {
-      if (getothers(i) != this) { 
-        float d = PVector.dist(pos, getothers(i).pos)- (rad/2+getothers(i).rad/2);
-        if (d < dMin) {
-          dMin = d;
-          closest = i;
-        }
+    if (!onPlanet) {
+      for (int i = 0; i<n; i++) {
+        if (getothers(i) != this) { 
+          float d = PVector.dist(pos, getothers(i).pos)- (rad/2+getothers(i).rad/2);
+          if (d < dMin) {
+            dMin = d;
+            closest = i;
+          }
 
-        // counts locals (touching orbs) and checks if anything in between orb and planet
-        if (d <= 3) {
-          locals += 1;
-          float dThis = pos.mag() -rad/2;
-          float dThat = getothers(i).pos.mag() - getothers(i).rad/2 ; 
-          if (dThis > dThat)
-            blocked = true;
+          // counts locals (touching orbs) and checks if anything in between orb and planet
+          if (d <= 3) {
+            locals += 1;
+            float dThis = pos.mag() -rad/2;
+            float dThat = getothers(i).pos.mag() - getothers(i).rad/2 ; 
+            if (dThis > dThat)
+              blocked = true;
+          }
         }
       }
-    }
 
-    // if no collision and within field, calculate magnetism
-    PVector diff = PVector.sub(getothers(closest).pos, pos);
-    if (dMin <= fieldSize && (dMin > 1) && free && !getothers(closest).free) {
-      magnetism.add(PVector.mult(PVector.div(diff, (abs(diff.x)+abs(diff.y))), (7/dMin)));
-    }
+      // if no collision and within field, calculate magnetism
+      PVector diff = PVector.sub(getothers(closest).pos, pos);
+      if (dMin <= fieldSize && (dMin > 1) && free && !getothers(closest).free) {
+        magnetism.add(PVector.mult(PVector.div(diff, (abs(diff.x)+abs(diff.y))), (7/dMin)));
+      }
 
-    if (blocked == false) {
-      free = true;
-      tryCount = 0; 
-      return false;
-    }
+      if (blocked == false) {
+        free = true;
+        tryCount = 0; 
+        return false;
+      }
 
-    // if collision then return true
-    PVector fpos = PVector.add(PVector.div(diff, (abs(diff.x)+abs(diff.y))*0.2), pos);
-    if (PVector.dist(pos, getothers(closest).pos) <= (rad/2+getothers(closest).rad/2)) {
+      // if collision then return true
+      PVector fpos = PVector.add(PVector.div(diff, (abs(diff.x)+abs(diff.y))*0.2), pos);
+      if (PVector.dist(pos, getothers(closest).pos) <= (rad/2+getothers(closest).rad/2)) {
 
-      if (n>1 && (tryCount<10 || locals != lastLocals)) {
-        float angThis = atan2(pos.x, pos.y);
-        float angThat = atan2(getothers(closest).pos.x, getothers(closest).pos.y);
+        if (n>1 && (tryCount<10 || locals != lastLocals)) {
+          float angThis = atan2(pos.x, pos.y);
+          float angThat = atan2(getothers(closest).pos.x, getothers(closest).pos.y);
 
-        // creates effect of orb rolling over surface of other orb
-        if (angThis > angThat && ((pos.x>0 && getothers(closest).pos.x>0)||pos.x<0 && getothers(closest).pos.x<0))
-          pos.rotate(-0.01);
-        if (angThis < angThat && ((pos.x>0 && getothers(closest).pos.x>0)||pos.x<0 && getothers(closest).pos.x<0))
-          pos.rotate(+0.01);
+          // creates effect of orb rolling over surface of other orb
+          if (angThis > angThat && ((pos.x>0 && getothers(closest).pos.x>0)||pos.x<0 && getothers(closest).pos.x<0))
+            pos.rotate(-0.01);
+          if (angThis < angThat && ((pos.x>0 && getothers(closest).pos.x>0)||pos.x<0 && getothers(closest).pos.x<0))
+            pos.rotate(+0.01);
 
-        // count tries - stops after certain number to prevent jerky movement
-        if (tried)
-          tryCount += 1; 
-        tried = true;
+          // count tries - stops after certain number to prevent jerky movement
+          if (tried)
+            tryCount += 1; 
+          tried = true;
+        }
+        lastLocals = locals;
+        free = false;
+        return true;
       }
       lastLocals = locals;
-      free = false;
-      return true;
-    }
-    lastLocals = locals;
-    tried = false;
-    tryCount = 0;  
+      tried = false;
+      tryCount = 0;
     }  
     return false;
   }
